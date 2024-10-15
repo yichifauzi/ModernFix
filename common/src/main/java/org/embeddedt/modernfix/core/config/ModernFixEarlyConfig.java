@@ -7,7 +7,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.embeddedt.modernfix.ModernFix;
 import org.embeddedt.modernfix.annotation.ClientOnlyMixin;
 import org.embeddedt.modernfix.annotation.IgnoreOutsideDev;
 import org.embeddedt.modernfix.annotation.RequiresMod;
@@ -139,7 +138,7 @@ public class ModernFixEarlyConfig {
                     mixinOptions.add(mixinCategoryName);
                 }
             } catch(IOException e) {
-                ModernFix.LOGGER.error("Error scanning file " + mixinPath, e);
+                LOGGER.error("Error scanning file " + mixinPath, e);
             }
         }
     }
@@ -166,6 +165,8 @@ public class ModernFixEarlyConfig {
             .put("mixin.feature.stalled_chunk_load_detection", false)
             .put("mixin.perf.blast_search_trees.force", false)
             .put("mixin.bugfix.restore_old_dragon_movement", false)
+            .put("mixin.perf.worldgen_allocation", false) // experimental
+            .put("mixin.feature.cause_lag_by_disabling_threads", false)
             .put("mixin.perf.clear_mixin_classinfo", false)
             .put("mixin.perf.deduplicate_climate_parameters", false)
             .put("mixin.bugfix.packet_leak", false)

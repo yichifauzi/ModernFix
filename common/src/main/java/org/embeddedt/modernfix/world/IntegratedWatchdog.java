@@ -38,6 +38,9 @@ public class IntegratedWatchdog extends Thread {
                 return;
             }
             if(lastTickStart.getAsLong() < 0) {
+                try {
+                    Thread.sleep(10000);
+                } catch(InterruptedException ignored) {}
                 continue;
             }
             long curTime = Util.getMillis();
@@ -45,6 +48,7 @@ public class IntegratedWatchdog extends Thread {
             if(delta > MAX_TICK_DELTA) {
                 LOGGER.error("A single server tick has taken {}, more than {} milliseconds", delta, MAX_TICK_DELTA);
                 LOGGER.error(ThreadDumper.obtainThreadDump());
+                delta = 0;
             }
             try {
                 Thread.sleep(MAX_TICK_DELTA - delta);

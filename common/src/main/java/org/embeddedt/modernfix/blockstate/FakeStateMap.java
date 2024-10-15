@@ -1,5 +1,7 @@
 package org.embeddedt.modernfix.blockstate;
 
+import com.google.common.collect.Iterators;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.world.level.block.state.properties.Property;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +16,7 @@ import java.util.*;
  */
 public class FakeStateMap<S> implements Map<Map<Property<?>, Comparable<?>>, S> {
     private final Map<Property<?>, Comparable<?>>[] keys;
+    private Map<Map<Property<?>, Comparable<?>>, S> fastLookup;
     private final Object[] values;
     private int usedSlots;
     public FakeStateMap(int numStates) {
@@ -34,22 +37,39 @@ public class FakeStateMap<S> implements Map<Map<Property<?>, Comparable<?>>, S> 
 
     @Override
     public boolean containsKey(Object o) {
-        throw new UnsupportedOperationException();
+        return getFastLookup().containsKey(o);
     }
 
     @Override
     public boolean containsValue(Object o) {
-        throw new UnsupportedOperationException();
+        return getFastLookup().containsValue(o);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<Map<Property<?>, Comparable<?>>, S> getFastLookup() {
+        if(fastLookup == null) {
+            var map = new Object2ObjectOpenHashMap<Map<Property<?>, Comparable<?>>, S>(usedSlots);
+            Map<Property<?>, Comparable<?>>[] keys = this.keys;
+            Object[] values = this.values;
+            for(int i = 0; i < usedSlots; i++) {
+                map.put(keys[i], (S)values[i]);
+            }
+            fastLookup = map;
+        }
+        return fastLookup;
     }
 
     @Override
     public S get(Object o) {
-        throw new UnsupportedOperationException();
+        return getFastLookup().get(o);
     }
 
     @Nullable
     @Override
     public S put(Map<Property<?>, Comparable<?>> propertyComparableMap, S s) {
+        if(fastLookup != null) {
+            throw new IllegalStateException("Cannot populate map after fast lookup is built");
+        }
         keys[usedSlots] = propertyComparableMap;
         values[usedSlots] = s;
         usedSlots++;
@@ -70,49 +90,58 @@ public class FakeStateMap<S> implements Map<Map<Property<?>, Comparable<?>>, S> 
 
     @Override
     public void clear() {
-        for(int i = 0; i < this.keys.length; i++) {
+        for(int i = 0; i < usedSlots; i++) {
             this.keys[i] = null;
             this.values[i] = null;
         }
         this.usedSlots = 0;
     }
 
+    private <T> List<T> asList(T... array) {
+        var list = Arrays.asList(array);
+        if(usedSlots < array.length) {
+            list = list.subList(0, usedSlots);
+        }
+        return list;
+    }
+
     @NotNull
     @Override
     public Set<Map<Property<?>, Comparable<?>>> keySet() {
-        throw new UnsupportedOperationException();
+        return new AbstractSet<>() {
+            @Override
+            public Iterator<Map<Property<?>, Comparable<?>>> iterator() {
+                return keys.length == usedSlots ? Iterators.forArray(keys) : asList(keys).iterator();
+            }
+
+            @Override
+            public int size() {
+                return usedSlots;
+            }
+        };
     }
 
     @NotNull
     @Override
     public Collection<S> values() {
-        throw new UnsupportedOperationException();
+        return (Collection<S>)asList(values);
     }
 
     @NotNull
     @Override
     public Set<Entry<Map<Property<?>, Comparable<?>>, S>> entrySet() {
-        return new Set<Entry<Map<Property<?>, Comparable<?>>, S>>() {
+        return new AbstractSet<>() {
             @Override
             public int size() {
                 return usedSlots;
             }
 
-            @Override
-            public boolean isEmpty() {
-                return FakeStateMap.this.isEmpty();
-            }
-
-            @Override
-            public boolean contains(Object o) {
-                throw new UnsupportedOperationException();
-            }
-
             @NotNull
             @Override
             public Iterator<Entry<Map<Property<?>, Comparable<?>>, S>> iterator() {
-                return new Iterator<Entry<Map<Property<?>, Comparable<?>>, S>>() {
+                return new Iterator<>() {
                     int currentIdx = 0;
+
                     @Override
                     public boolean hasNext() {
                         return currentIdx < usedSlots;
@@ -120,60 +149,13 @@ public class FakeStateMap<S> implements Map<Map<Property<?>, Comparable<?>>, S> 
 
                     @Override
                     public Entry<Map<Property<?>, Comparable<?>>, S> next() {
-                        if(currentIdx >= usedSlots)
+                        if (currentIdx >= usedSlots)
                             throw new IndexOutOfBoundsException();
-                        Entry<Map<Property<?>, Comparable<?>>, S> entry = new AbstractMap.SimpleImmutableEntry<>(keys[currentIdx], (S)values[currentIdx]);
+                        Entry<Map<Property<?>, Comparable<?>>, S> entry = new AbstractMap.SimpleImmutableEntry<>(keys[currentIdx], (S) values[currentIdx]);
                         currentIdx++;
                         return entry;
                     }
                 };
-            }
-
-            @NotNull
-            @Override
-            public Object[] toArray() {
-                throw new UnsupportedOperationException();
-            }
-
-            @NotNull
-            @Override
-            public <T> T[] toArray(@NotNull T[] ts) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean add(Entry<Map<Property<?>, Comparable<?>>, S> mapSEntry) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean remove(Object o) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean containsAll(@NotNull Collection<?> collection) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean addAll(@NotNull Collection<? extends Entry<Map<Property<?>, Comparable<?>>, S>> collection) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean retainAll(@NotNull Collection<?> collection) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean removeAll(@NotNull Collection<?> collection) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public void clear() {
-                throw new UnsupportedOperationException();
             }
         };
     }

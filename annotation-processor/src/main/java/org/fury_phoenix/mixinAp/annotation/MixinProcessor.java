@@ -80,7 +80,7 @@ public class MixinProcessor extends AbstractProcessor {
             List<String> mixins =
             annotatedMixins.stream()
             .map(TypeElement.class::cast)
-            .map(TypeElement::toString)
+            .map(e -> processingEnv.getElementUtils().getBinaryName(e).toString())
             .collect(Collectors.toList());
 
             mixinConfigList.putIfAbsent(aliases.get(annotation.getSimpleName().toString()), mixins);
